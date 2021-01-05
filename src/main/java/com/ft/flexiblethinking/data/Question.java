@@ -23,5 +23,4 @@ public class Question {
     }
 
     private String content;
-
 }
