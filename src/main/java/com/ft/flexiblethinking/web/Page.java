@@ -12,12 +12,20 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.annotation.Resource;
+
 @RestController
 public class Page {
 
-    QueryUsers qu = new QueryUsers();
-    QueryQuestions qq = new QueryQuestions();
-    QuerySubmissions qs = new QuerySubmissions();
+    @Resource
+    private QueryUsers qu;
+
+    @Resource
+    private QueryQuestions qq;
+
+    @Resource
+    private QuerySubmissions qs;
+
     Gson gson = new Gson();
 
     @PostMapping("/login")
