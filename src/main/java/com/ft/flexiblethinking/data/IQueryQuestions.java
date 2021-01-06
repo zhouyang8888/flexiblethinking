@@ -5,5 +5,8 @@ import java.util.Optional;
 
 public interface IQueryQuestions {
     public List<Question> findAll();
-    public Optional<Question> findByID(Long id);
+    public QuestionStruct findByID(Long id);
+    public void save(QuestionStruct quest);
+    public void saveAll(List<QuestionStruct> quests);
+    public long count();
 }
