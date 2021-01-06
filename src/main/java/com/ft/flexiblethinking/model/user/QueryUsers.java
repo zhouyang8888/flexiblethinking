@@ -22,4 +22,10 @@ public class QueryUsers implements IQueryUsers{
         if (ids == null || ids.isEmpty()) return -1;
         else return ids.get(0);
     }
+
+    public long checkExists(String name){
+        List<Long> ids = repo.findByName(name);
+        if (ids == null || ids.isEmpty()) return -1;
+        else return ids.get(0);
+    }
 }
