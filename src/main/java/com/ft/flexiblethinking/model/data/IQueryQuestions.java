@@ -1,7 +1,6 @@
-package com.ft.flexiblethinking.data;
+package com.ft.flexiblethinking.model.data;
 
 import java.util.List;
-import java.util.Optional;
 
 public interface IQueryQuestions {
     public List<Question> findAll();

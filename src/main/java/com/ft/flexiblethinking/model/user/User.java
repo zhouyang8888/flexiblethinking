@@ -1,4 +1,4 @@
-package com.ft.flexiblethinking.user;
+package com.ft.flexiblethinking.model.user;
 
 import javax.persistence.*;
 

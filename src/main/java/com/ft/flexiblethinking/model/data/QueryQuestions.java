@@ -1,10 +1,9 @@
-package com.ft.flexiblethinking.data;
+package com.ft.flexiblethinking.model.data;
 
 import com.google.gson.Gson;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;

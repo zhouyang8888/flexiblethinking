@@ -1,4 +1,4 @@
-package com.ft.flexiblethinking.data;
+package com.ft.flexiblethinking.model.data;
 
 public class QuestionStruct {
     public String getTitle() {

@@ -1,6 +1,4 @@
-package com.ft.flexiblethinking.user;
-
-import java.util.List;
+package com.ft.flexiblethinking.model.user;
 
 public interface IQueryUsers {
     public long checkExists(String name, String md5code);
