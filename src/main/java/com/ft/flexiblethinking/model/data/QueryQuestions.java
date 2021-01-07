@@ -12,7 +12,7 @@ import java.util.Optional;
 public class QueryQuestions implements IQueryQuestions {
 
     @Autowired
-    private Repository repo;
+    private RepoQuestions repo;
     Gson gson = new Gson();
 
     public List<Question> findAll() {

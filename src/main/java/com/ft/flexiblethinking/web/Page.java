@@ -3,6 +3,7 @@ package com.ft.flexiblethinking.web;
 import com.ft.flexiblethinking.model.data.QueryQuestions;
 import com.ft.flexiblethinking.model.submission.QuerySubmissions;
 import com.ft.flexiblethinking.model.user.QueryUsers;
+import com.ft.flexiblethinking.web.response.UserExists;
 import com.ft.flexiblethinking.web.response.UserLoginSuc;
 import com.ft.flexiblethinking.web.response.UserNoExists;
 import com.google.gson.Gson;
@@ -56,6 +57,26 @@ public class Page {
         }
     }
 
+    @PostMapping("/logup")
+    public String logup(@RequestParam(value = "name", defaultValue = "") String name,
+                        @RequestParam(value = "md5pswd", required = true) String md5pswd) {
+        // Try to check ID.
+        long uid = qu.checkExists(name, md5pswd);
+        if (uid >= 0) {
+            UserExists status = new UserExists();
+            status.setUid(uid);
+            status.setStatusCode(-1);
+            status.setMessage(String.format("User %s already exist.", uid));
+            return gson.toJson(status);
+        } else {
+            boolean ok = qu.save(name, md5pswd);
+            if (ok) {
+
+            }
+            return gson.toJson(name);
+        }
+    }
+
     @GetMapping("/")
     public String frontpage() {
         return "<html><body><form action=\"/login\" method='POST' onsubmit='return toMD5()'>" +
@@ -67,6 +88,7 @@ public class Page {
                 "<input type=\"submit\" value=\"Submit\">" +
                 "</form>" +
                 "<script src=\"https://cdn.bootcss.com/blueimp-md5/2.10.0/js/md5.js\"></script>" +
+                "<script src=\"http://ajax.googleapis.com/ajax/libs/jquery/1.4.0/jquery.min.js\"></script>" +
                 "<script>" +
                 "function toMD5() {" +
                 "   var a = document.getElementById('pswd');" +
