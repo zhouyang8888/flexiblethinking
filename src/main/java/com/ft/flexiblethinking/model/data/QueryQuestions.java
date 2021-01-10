@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 
@@ -25,6 +26,19 @@ public class QueryQuestions implements IQueryQuestions {
             return gson.fromJson(oq.get().getContent(), QuestionStruct.class);
         else
             return null;
+    }
+
+    public List<QuestionStruct> findByID(Long start, Long end) {
+        List<Long> ids = Collections.emptyList();
+        for (Long s = start; s < end; s++) ids.add(s);
+        Iterable<Question> lq = repo.findAllById(ids);
+        List<QuestionStruct> ret = Collections.EMPTY_LIST;
+        Iterator<Question> lqItr = lq.iterator();
+        while (lqItr.hasNext()) {
+            Question qu = lqItr.next();
+            ret.add(gson.fromJson(qu.getContent(), QuestionStruct.class));
+        }
+        return ret;
     }
 
     public void save(QuestionStruct quest) {

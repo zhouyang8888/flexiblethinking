@@ -7,6 +7,7 @@ import com.ft.flexiblethinking.web.response.UserExists;
 import com.ft.flexiblethinking.web.response.UserLoginSuc;
 import com.ft.flexiblethinking.web.response.UserNoExists;
 import com.google.gson.Gson;
+import org.apache.tomcat.util.security.MD5Encoder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -14,6 +15,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.annotation.Resource;
+import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpServletResponse;
+import java.nio.charset.StandardCharsets;
 
 @RestController
 public class Page {
@@ -29,9 +33,16 @@ public class Page {
 
     Gson gson = new Gson();
 
-    @PostMapping("/login")
+    @GetMapping("/problems")
+    public String getProblems(@RequestParam int uid, HttpServletResponse response) {
+        long cnt = qq.count();
+
+    }
+
+    @PostMapping("/signin")
     public String login(@RequestParam(value = "name", defaultValue = "") String name,
-                        @RequestParam(value = "md5pswd", required = true) String md5pswd) {
+                        @RequestParam(value = "md5pswd", required = true) String md5pswd,
+                        HttpServletResponse response) {
         // Try to check ID.
         long uid = qu.checkExists(name, md5pswd);
         if (uid >= 0) {
@@ -39,6 +50,13 @@ public class Page {
             status.setUid(uid);
             status.setRedirectUrl("/user");
             status.setStatusCode(0);
+
+            Cookie cookie = new Cookie("sn", Long.toHexString(uid));
+            cookie.setMaxAge(24 * 60 * 60);
+            cookie.setHttpOnly(true);
+            // cookie.setSecure(true);//https
+            response.addCookie(cookie);
+
             return gson.toJson(status);
         } else {
             UserNoExists status = new UserNoExists();
@@ -57,9 +75,10 @@ public class Page {
         }
     }
 
-    @PostMapping("/logup")
+    @PostMapping("/signup")
     public String logup(@RequestParam(value = "name", defaultValue = "") String name,
-                        @RequestParam(value = "md5pswd", required = true) String md5pswd) {
+                        @RequestParam(value = "md5pswd", required = true) String md5pswd,
+                        HttpServletResponse response) {
         // Try to check ID.
         long uid = qu.checkExists(name, md5pswd);
         if (uid >= 0) {
@@ -71,9 +90,13 @@ public class Page {
         } else {
             boolean ok = qu.save(name, md5pswd);
             if (ok) {
-
+                Cookie cookie = new Cookie("sn", Long.toHexString(uid));
+                cookie.setMaxAge(24 * 60 * 60);
+                cookie.setHttpOnly(true);
+                // cookie.setSecure(true); // https
+                response.addCookie(cookie);
             }
-            return gson.toJson(name);
+            return gson.toJson(name + (ok ? " Succeeded " : " Failed ") + "in signing.");
         }
     }
 
@@ -85,7 +108,8 @@ public class Page {
                 "<label for=\"pswd\">PSWD</label>" +
                 "<input type=\"password\" id=\"pswd\">" + "<br/>" +
                 "<input type=\"hidden\" id=\"md5pswd\" name=\"md5pswd\">" + "<br/>" +
-                "<input type=\"submit\" value=\"Submit\">" +
+                "<input type=\"submit\" id=\"signin\" value=\"signin\" formaction=\"signin\" formmethod=\"POST\">" +
+                "<input type=\"submit\" id=\"signup\" value=\"signup\" formaction=\"signup\" formmethod=\"POST\">" +
                 "</form>" +
                 "<script src=\"https://cdn.bootcss.com/blueimp-md5/2.10.0/js/md5.js\"></script>" +
                 "<script src=\"http://ajax.googleapis.com/ajax/libs/jquery/1.4.0/jquery.min.js\"></script>" +
