@@ -29,11 +29,11 @@ public class QueryUsers implements IQueryUsers{
         else return ids.get(0);
     }
 
-    public boolean save(String name, String md5code) {
+    public long save(String name, String md5code) {
         User u = new User();
         u.setName(name);
         u.setMd5code(md5code);
         u = repo.save(u);
-        return u.getId() >= 0;
+        return u.getId();
     }
 }
