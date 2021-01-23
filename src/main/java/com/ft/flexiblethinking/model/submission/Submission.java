@@ -29,15 +29,15 @@ public class Submission {
         this.qid = qid;
     }
 
-    public String getProgram() {
-        return program;
+    public String getAnswer() {
+        return answer;
     }
 
-    public void setProgram(String program) {
-        this.program = program;
+    public void setAnswer(String answer) {
+        this.answer = answer;
     }
 
     private Long uid;
     private Long qid;
-    private String program;
+    private String answer;
 }

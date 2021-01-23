@@ -1,16 +1,20 @@
 package com.ft.flexiblethinking.web;
 
 import com.ft.flexiblethinking.model.data.QueryQuestions;
+import com.ft.flexiblethinking.model.data.QuestionStruct;
 import com.ft.flexiblethinking.model.submission.QuerySubmissions;
+import com.ft.flexiblethinking.model.submission.Submission;
 import com.ft.flexiblethinking.model.user.QueryUsers;
 import com.ft.flexiblethinking.web.response.UserResponseBody;
-import com.google.gson.Gson;
-import com.google.gson.JsonObject;
+import com.google.gson.*;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletResponse;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
 
 @RestController
 public class Page {
@@ -25,13 +29,6 @@ public class Page {
     private QuerySubmissions qs;
 
     Gson gson = new Gson();
-
-    @CrossOrigin(origins = "http://127.0.0.1:8080")
-    @GetMapping("/problems")
-    public String getProblems(@RequestParam int uid, HttpServletResponse response) {
-        long cnt = qq.count();
-        return "";
-    }
 
     @CrossOrigin(origins = "http://127.0.0.1:8080")
     @PostMapping("/signin")
@@ -107,5 +104,57 @@ public class Page {
                 return gson.toJson(status);
             }
         }
+    }
+
+    @CrossOrigin(origins = "http://127.0.0.1:8080")
+    @GetMapping("/list")
+    public String getListByPageNo(@RequestParam long pn, @RequestParam long mpc) {
+        long totalProblemCount = qq.count();
+        List<QuestionStruct> problems = null;
+        long start = (pn - 1) * mpc + 1;
+        long end = start + mpc;
+        if (start < totalProblemCount) {
+            if (end > totalProblemCount) {
+                end = totalProblemCount;
+            }
+            problems = qq.findByID(start, end);
+        } else {
+            problems = new ArrayList<>();
+        }
+        JsonObject jsonObject = new JsonObject();
+        jsonObject.add("pageCount", new JsonPrimitive((totalProblemCount + mpc - 1) / mpc));
+        jsonObject.add("problems", gson.toJsonTree(problems));
+        return gson.toJson(jsonObject);
+    }
+
+    @CrossOrigin(origins = "http://127.0.0.1:8080")
+    @PostMapping("/problem")
+    public String getProblemByPID(@RequestBody String body) {
+        JsonObject job = gson.fromJson(body, JsonObject.class);
+        long pid = job.get("id").getAsLong();
+        QuestionStruct q = qq.findByID(pid);
+        return gson.toJson(q);
+    }
+
+    @CrossOrigin(origins = "http://127.0.0.1:8080")
+    @PostMapping("/submit")
+    public String submit(@RequestBody String body) {
+        JsonObject job = gson.fromJson(body, JsonObject.class);
+        long uid = job.get("uid").getAsLong();
+        long pid = job.get("id").getAsLong();
+        String answer = job.get("ans").getAsString().trim().toLowerCase();
+
+        QuestionStruct q = qq.findByID(pid);
+        String expected = q.getOut();
+        boolean correct = answer.equals(expected.trim().toLowerCase());
+        Submission submission = new Submission();
+        submission.setUid(uid);
+        submission.setQid(pid);
+        submission.setAnswer(answer);
+        qs.add(submission);
+
+        JsonObject respData = new JsonObject();
+        respData.add("correct", new JsonPrimitive(correct));
+        return gson.toJson(respData);
     }
 }

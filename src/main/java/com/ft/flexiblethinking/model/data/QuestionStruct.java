@@ -9,34 +9,34 @@ public class QuestionStruct {
         this.title = title;
     }
 
-    public String getProblem() {
-        return problem;
+    public String getDesc() {
+        return desc;
     }
 
-    public void setProblem(String problem) {
-        this.problem = problem;
+    public void setDesc(String desc) {
+        this.desc = desc;
     }
 
-    public String getCasein() {
-        return casein;
+    public String getIn() {
+        return in;
     }
 
-    public void setCasein(String casein) {
-        this.casein = casein;
+    public String getOut() {
+        return out;
     }
 
-    public String getCaseout() {
-        return caseout;
+    public void setIn(String in) {
+        this.in = in;
     }
 
-    public void setCaseout(String caseout) {
-        this.caseout = caseout;
+    public void setOut(String out) {
+        this.out = out;
     }
 
     private String title;
-    private String problem;
-    private String casein;
-    private String caseout;
+    private String desc;
+    private String in;
+    private String out;
 
     public QuestionStruct(){}
 }
