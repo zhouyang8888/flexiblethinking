@@ -7,17 +7,17 @@ import com.ft.flexiblethinking.web.response.UserExists;
 import com.ft.flexiblethinking.web.response.UserLoginSuc;
 import com.ft.flexiblethinking.web.response.UserNoExists;
 import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import org.apache.tomcat.util.security.MD5Encoder;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletResponse;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.HashMap;
 
 @RestController
 public class Page {
@@ -36,13 +36,16 @@ public class Page {
     @GetMapping("/problems")
     public String getProblems(@RequestParam int uid, HttpServletResponse response) {
         long cnt = qq.count();
-
+        return "";
     }
 
+    @CrossOrigin(origins = "http://127.0.0.1:8080")
     @PostMapping("/signin")
-    public String login(@RequestParam(value = "name", defaultValue = "") String name,
-                        @RequestParam(value = "md5pswd", required = true) String md5pswd,
+    public String login(@RequestBody(required = true) String body,
                         HttpServletResponse response) {
+        JsonObject job = gson.fromJson(body, JsonObject.class);
+        String name = job.get("name").getAsString();
+        String md5pswd = job.get("md5pswd").getAsString();
         // Try to check ID.
         long uid = qu.checkExists(name, md5pswd);
         if (uid >= 0) {
@@ -75,11 +78,13 @@ public class Page {
         }
     }
 
+    @CrossOrigin(origins = "http://127.0.0.1:8080")
     @PostMapping("/signup")
-    public String logup(@RequestParam(value = "name", defaultValue = "") String name,
-                        @RequestParam(value = "md5pswd", required = true) String md5pswd,
+    public String logup(@RequestBody(required = true) String body,
                         HttpServletResponse response) {
-        // Try to check ID.
+        JsonObject job = gson.fromJson(body, JsonObject.class);
+        String name = job.get("name").getAsString();
+        String md5pswd = job.get("md5pswd").getAsString();
         long uid = qu.checkExists(name, md5pswd);
         if (uid >= 0) {
             UserExists status = new UserExists();
