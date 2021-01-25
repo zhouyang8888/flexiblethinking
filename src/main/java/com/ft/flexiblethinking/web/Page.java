@@ -1,5 +1,6 @@
 package com.ft.flexiblethinking.web;
 
+import com.ft.flexiblethinking.common.SingletonCookieInfoService;
 import com.ft.flexiblethinking.model.data.QueryQuestions;
 import com.ft.flexiblethinking.model.data.QuestionStruct;
 import com.ft.flexiblethinking.model.submission.QuerySubmissions;
@@ -7,17 +8,23 @@ import com.ft.flexiblethinking.model.submission.Submission;
 import com.ft.flexiblethinking.model.user.QueryUsers;
 import com.ft.flexiblethinking.web.response.UserResponseBody;
 import com.google.gson.*;
+import org.apache.tomcat.jni.Time;
+import org.apache.tomcat.util.security.MD5Encoder;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletResponse;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
 @RestController
 public class Page {
+
+    @Resource
+    private SingletonCookieInfoService cookieInfo;
 
     @Resource
     private QueryUsers qu;
@@ -31,6 +38,35 @@ public class Page {
     Gson gson = new Gson();
 
     @CrossOrigin(origins = "http://127.0.0.1:8080")
+    @PostMapping("/api/signincheck")
+    public String loginCheck(@RequestBody(required = true) String body) {
+        JsonObject job = gson.fromJson(body, JsonObject.class);
+        JsonElement check = job.get("check");
+        if (check != null) {
+            String checkid = check.getAsString();
+            SingletonCookieInfoService.CookieInfo info = cookieInfo.getCookieInfo(checkid);
+            if (info != null) {
+                long id = ((Long) info.get("ID")).longValue();
+                String name = (String) info.get("name");
+                String md5pswd = (String) info.get("md5pswd");
+                long uid = qu.checkExists(name, md5pswd);
+                if (uid == id && uid > 0) {
+                    UserResponseBody status = new UserResponseBody();
+                    status.setUid(uid);
+                    status.setStatusCode(10);
+                    status.setMessage(name);
+                    return gson.toJson(status);
+                }
+            }
+        }
+        UserResponseBody status = new UserResponseBody();
+        status.setUid(-1l);
+        status.setStatusCode(-13);
+        status.setMessage("To login first.");
+        return gson.toJson(status);
+    }
+
+    @CrossOrigin(origins = "http://127.0.0.1:8080")
     @PostMapping("/api/signin")
     public String login(@RequestBody(required = true) String body,
                         HttpServletResponse response) {
@@ -40,7 +76,16 @@ public class Page {
         // Try to check ID.
         long uid = qu.checkExists(name, md5pswd);
         if (uid >= 0) {
-            Cookie cookie = new Cookie("uid", Long.toHexString(uid));
+            String md5random = MD5Encoder.encode(
+                    (((Long)Time.now()).toString() + '#' +
+                            ((Long)Thread.currentThread().getId())).getBytes());
+            SingletonCookieInfoService.CookieInfo cookieInfo = new SingletonCookieInfoService.CookieInfo();
+            cookieInfo.put("name", name);
+            cookieInfo.put("ID", uid);
+            cookieInfo.put("md5pswd", md5pswd);
+            this.cookieInfo.putCookieInfo(md5random, cookieInfo);
+
+            Cookie cookie = new Cookie("qwer", md5random);
             cookie.setMaxAge(24 * 60 * 60);
             cookie.setHttpOnly(true);
             // cookie.setSecure(true);//https
