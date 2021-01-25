@@ -113,9 +113,9 @@ public class Page {
         List<QuestionStruct> problems = null;
         long start = (pn - 1) * mpc + 1;
         long end = start + mpc;
-        if (start < totalProblemCount) {
-            if (end > totalProblemCount) {
-                end = totalProblemCount;
+        if (start <= totalProblemCount) {
+            if (end > totalProblemCount + 1) {
+                end = totalProblemCount + 1;
             }
             problems = qq.findByID(start, end);
         } else {
