@@ -40,7 +40,7 @@ public class Page {
         // Try to check ID.
         long uid = qu.checkExists(name, md5pswd);
         if (uid >= 0) {
-            Cookie cookie = new Cookie("sn", Long.toHexString(uid));
+            Cookie cookie = new Cookie("uid", Long.toHexString(uid));
             cookie.setMaxAge(24 * 60 * 60);
             cookie.setHttpOnly(true);
             // cookie.setSecure(true);//https
