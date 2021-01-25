@@ -31,7 +31,7 @@ public class Page {
     Gson gson = new Gson();
 
     @CrossOrigin(origins = "http://127.0.0.1:8080")
-    @PostMapping("/signin")
+    @PostMapping("/api/signin")
     public String login(@RequestBody(required = true) String body,
                         HttpServletResponse response) {
         JsonObject job = gson.fromJson(body, JsonObject.class);
@@ -69,7 +69,7 @@ public class Page {
     }
 
     @CrossOrigin(origins = "http://127.0.0.1:8080")
-    @PostMapping("/signup")
+    @PostMapping("/api/signup")
     public String logup(@RequestBody(required = true) String body,
                         HttpServletResponse response) {
         JsonObject job = gson.fromJson(body, JsonObject.class);
@@ -107,7 +107,7 @@ public class Page {
     }
 
     @CrossOrigin(origins = "http://127.0.0.1:8080")
-    @GetMapping("/list")
+    @GetMapping("/api/list")
     public String getListByPageNo(@RequestParam long pn, @RequestParam long mpc) {
         long totalProblemCount = qq.count();
         List<QuestionStruct> problems = null;
@@ -128,7 +128,7 @@ public class Page {
     }
 
     @CrossOrigin(origins = "http://127.0.0.1:8080")
-    @PostMapping("/problem")
+    @PostMapping("/api/problem")
     public String getProblemByPID(@RequestBody String body) {
         JsonObject job = gson.fromJson(body, JsonObject.class);
         long pid = job.get("id").getAsLong();
@@ -137,7 +137,7 @@ public class Page {
     }
 
     @CrossOrigin(origins = "http://127.0.0.1:8080")
-    @PostMapping("/submit")
+    @PostMapping("/api/submit")
     public String submit(@RequestBody String body) {
         JsonObject job = gson.fromJson(body, JsonObject.class);
         long uid = job.get("uid").getAsLong();
