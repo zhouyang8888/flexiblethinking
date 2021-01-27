@@ -11,12 +11,17 @@ import com.google.gson.*;
 import org.apache.tomcat.jni.Time;
 import org.apache.tomcat.util.security.MD5Encoder;
 import org.springframework.web.bind.annotation.*;
+import sun.security.provider.MD5;
 
 import javax.annotation.Resource;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletResponse;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
@@ -76,20 +81,26 @@ public class Page {
         // Try to check ID.
         long uid = qu.checkExists(name, md5pswd);
         if (uid >= 0) {
-            String md5random = MD5Encoder.encode(
-                    (((Long)Time.now()).toString() + '#' +
-                            ((Long)Thread.currentThread().getId())).getBytes());
-            SingletonCookieInfoService.CookieInfo cookieInfo = new SingletonCookieInfoService.CookieInfo();
-            cookieInfo.put("name", name);
-            cookieInfo.put("ID", uid);
-            cookieInfo.put("md5pswd", md5pswd);
-            this.cookieInfo.putCookieInfo(md5random, cookieInfo);
+            MessageDigest md5 = null;
+            try {
+                md5 = MessageDigest.getInstance("MD5");
+                byte[] md5bytes = md5.digest(("" + Instant.now().getEpochSecond() + '#' +
+                        ((Long)Thread.currentThread().getId())).getBytes());
+                String md5random = MD5Encoder.encode(md5bytes);
+                SingletonCookieInfoService.CookieInfo cookieInfo = new SingletonCookieInfoService.CookieInfo();
+                cookieInfo.put("name", name);
+                cookieInfo.put("ID", uid);
+                cookieInfo.put("md5pswd", md5pswd);
+                this.cookieInfo.putCookieInfo(md5random, cookieInfo);
 
-            Cookie cookie = new Cookie("qwer", md5random);
-            cookie.setMaxAge(24 * 60 * 60);
-            cookie.setHttpOnly(true);
-            // cookie.setSecure(true);//https
-            response.addCookie(cookie);
+                Cookie cookie = new Cookie("qwer", md5random);
+                cookie.setMaxAge(24 * 60 * 60);
+                cookie.setHttpOnly(true);
+                // cookie.setSecure(true);//https
+                response.addCookie(cookie);
+            } catch (NoSuchAlgorithmException e) {
+                e.printStackTrace();
+            }
 
             UserResponseBody status = new UserResponseBody();
             status.setUid(uid);

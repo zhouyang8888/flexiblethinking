@@ -1,43 +1,83 @@
 package com.ft.flexiblethinking.common;
 
 import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 
 public class LRU<V> {
-    List<String> nameList = new LinkedList<>();
-    Map<String, V> items = new HashMap<>();
+    private class Node {
+        protected V item = null;
+        protected String name = null;
+        protected Node pre = null;
+        protected Node next = null;
+    }
+
+    Node lruFirst = null;
+    Node lruLast = null;
+
+    Map<String, Node> items = new HashMap<>();
     int maxSize = 100;
 
     public LRU(int maxSize) {
         if (maxSize > 100)
             this.maxSize = maxSize;
+        lruFirst = new Node();
+        lruLast = lruFirst;
+        lruFirst.next = lruLast;
+        lruLast.pre = lruFirst;
     }
 
     public void add(String name, V item) {
         if (items.containsKey(name)) {
-            nameList.remove(name);
-        }
-        items.put(name, item);
-        nameList.add(0, name);
-        if (nameList.size() > maxSize) {
-            name = nameList.remove(maxSize);
-            items.remove(name);
+            Node oldItem = items.get(name);
+            pull(oldItem);
+            oldItem.item = item;
+            oldItem.name = name;
+            push(oldItem);
+        } else {
+            Node newItem = new Node();
+            newItem.item = item;
+            newItem.name = name;
+            push(newItem);
+            items.put(name, newItem);
+            if (items.size() > maxSize) {
+                Node lastNode = lruLast.pre;
+                pull(lastNode);
+                items.remove(lastNode.name);
+            }
         }
     }
 
     public V get(String name) {
-        V item = items.get(name);
+        Node item = items.get(name);
         if (item != null) {
-            nameList.remove(name);
-            nameList.add(0, name);
+            pull(item);
+            push(item);
+            return item.item;
         }
-        return item;
+        return null;
     }
 
     public void remove(String name) {
-        nameList.remove(name);
-        items.remove(name);
+        Node item = items.get(name);
+        if (item != null) {
+            items.remove(name);
+            pull(item);
+        }
+    }
+
+    private void pull(Node item) {
+        item.pre.next = item.next;
+        item.next.pre = item.pre;
+        if (lruFirst == item) {
+            lruFirst = lruFirst.next;
+        }
+    }
+
+    private void push(Node item) {
+        item.next = lruFirst;
+        item.pre = lruFirst.pre;
+        item.pre.next = item;
+        item.next.pre = item;
+        lruFirst = item;
     }
 }
