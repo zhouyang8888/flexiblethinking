@@ -14,12 +14,16 @@ import org.springframework.web.bind.annotation.*;
 import sun.security.provider.MD5;
 
 import javax.annotation.Resource;
+import javax.persistence.criteria.CriteriaBuilder;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletResponse;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.temporal.TemporalUnit;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -48,19 +52,25 @@ public class Page {
         JsonObject job = gson.fromJson(body, JsonObject.class);
         JsonElement check = job.get("check");
         if (check != null) {
-            String checkid = check.getAsString();
-            SingletonCookieInfoService.CookieInfo info = cookieInfo.getCookieInfo(checkid);
+            String qwer = check.getAsString();
+            SingletonCookieInfoService.CookieInfo info = cookieInfo.getCookieInfo(qwer);
             if (info != null) {
-                long id = ((Long) info.get("ID")).longValue();
+                long loginid = ((Long) info.get("ID")).longValue();
                 String name = (String) info.get("name");
                 String md5pswd = (String) info.get("md5pswd");
-                long uid = qu.checkExists(name, md5pswd);
-                if (uid == id && uid > 0) {
-                    UserResponseBody status = new UserResponseBody();
-                    status.setUid(uid);
-                    status.setStatusCode(10);
-                    status.setMessage(name);
-                    return gson.toJson(status);
+                Instant startTime = (Instant) info.get("expire");
+                Instant endTime = startTime.plus(Duration.ofDays(1));
+                if (!Instant.now().isAfter(endTime)) {
+                    long uid = qu.checkExists(name, md5pswd);
+                    if (uid == loginid && uid > 0) {
+                        UserResponseBody status = new UserResponseBody();
+                        status.setUid(uid);
+                        status.setStatusCode(10);
+                        status.setMessage(name);
+                        return gson.toJson(status);
+                    }
+                } else {
+                    cookieInfo.removeCookieInfo(name);
                 }
             }
         }
@@ -81,6 +91,8 @@ public class Page {
         // Try to check ID.
         long uid = qu.checkExists(name, md5pswd);
         if (uid >= 0) {
+            JsonObject jsonObject = new JsonObject();
+
             MessageDigest md5 = null;
             try {
                 md5 = MessageDigest.getInstance("MD5");
@@ -91,13 +103,10 @@ public class Page {
                 cookieInfo.put("name", name);
                 cookieInfo.put("ID", uid);
                 cookieInfo.put("md5pswd", md5pswd);
+                cookieInfo.put("expire", Instant.now());
                 this.cookieInfo.putCookieInfo(md5random, cookieInfo);
 
-                Cookie cookie = new Cookie("qwer", md5random);
-                cookie.setMaxAge(24 * 60 * 60);
-                cookie.setHttpOnly(true);
-                // cookie.setSecure(true);//https
-                response.addCookie(cookie);
+                jsonObject.add("qwer", new JsonPrimitive(md5random));
             } catch (NoSuchAlgorithmException e) {
                 e.printStackTrace();
             }
@@ -106,7 +115,9 @@ public class Page {
             status.setUid(uid);
             status.setStatusCode(10);
             status.setMessage(name + " Login SUCCEEDED.");
-            return gson.toJson(status);
+
+            jsonObject.add("info", gson.toJsonTree(status));
+            return gson.toJson(jsonObject);
         } else {
             UserResponseBody status = new UserResponseBody();
 
@@ -131,22 +142,16 @@ public class Page {
         JsonObject job = gson.fromJson(body, JsonObject.class);
         String name = job.get("name").getAsString();
         String md5pswd = job.get("md5pswd").getAsString();
-        long uid = qu.checkExists(name, md5pswd);
+        long uid = qu.checkExists(name);
         if (uid >= 0) {
             UserResponseBody status = new UserResponseBody();
-            status.setUid(uid);
-            status.setStatusCode(1);
+            status.setUid(-1);
+            status.setStatusCode(-1);
             status.setMessage(String.format("User %s already EXIST.", uid));
             return gson.toJson(status);
         } else {
             uid = qu.save(name, md5pswd);
             if (uid > 0) {
-                Cookie cookie = new Cookie("sn", Long.toHexString(uid));
-                cookie.setMaxAge(24 * 60 * 60);
-                cookie.setHttpOnly(true);
-                // cookie.setSecure(true); // https
-                response.addCookie(cookie);
-
                 UserResponseBody status = new UserResponseBody();
                 status.setUid(uid);
                 status.setStatusCode(0);
@@ -154,8 +159,8 @@ public class Page {
                 return gson.toJson(status);
             } else {
                 UserResponseBody status = new UserResponseBody();
-                status.setUid(uid);
-                status.setStatusCode(-1);
+                status.setUid(-1);
+                status.setStatusCode(-2);
                 status.setMessage(name + " FAILED in signup.");
                 return gson.toJson(status);
             }

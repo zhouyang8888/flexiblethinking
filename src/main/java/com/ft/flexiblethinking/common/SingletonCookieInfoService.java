@@ -4,6 +4,7 @@ import org.springframework.stereotype.Service;
 import sun.misc.LRUCache;
 
 import javax.management.timer.Timer;
+import java.io.Serializable;
 import java.util.Date;
 import java.util.HashMap;
 
@@ -20,5 +21,9 @@ public class SingletonCookieInfoService {
 
     public void putCookieInfo(String md5sum, CookieInfo ci) {
         loginUser.add(md5sum, ci);
+    }
+
+    public void removeCookieInfo(String md5sum) {
+        loginUser.remove(md5sum);
     }
 }

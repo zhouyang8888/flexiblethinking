@@ -26,7 +26,7 @@ public class LRU<V> {
         lruLast.pre = lruFirst;
     }
 
-    public void add(String name, V item) {
+    public synchronized void add(String name, V item) {
         if (items.containsKey(name)) {
             Node oldItem = items.get(name);
             pull(oldItem);
@@ -47,7 +47,7 @@ public class LRU<V> {
         }
     }
 
-    public V get(String name) {
+    public synchronized V get(String name) {
         Node item = items.get(name);
         if (item != null) {
             pull(item);
@@ -57,7 +57,8 @@ public class LRU<V> {
         return null;
     }
 
-    public void remove(String name) {
+    @SuppressWarnings("")
+    public synchronized void remove(String name) {
         Node item = items.get(name);
         if (item != null) {
             items.remove(name);
