@@ -44,14 +44,14 @@ public class QueryQuestions implements IQueryQuestions {
         repo.save(q);
     }
 
-    public void saveAll(List<QuestionStruct> quests) {
-        List<Question> qs = Collections.EMPTY_LIST;
+    public int saveAll(List<QuestionStruct> quests) {
+        List<Question> qs = new LinkedList<>();
         for (QuestionStruct qstruct : quests) {
             Question q = new Question();
             q.setContent(gson.toJson(qstruct));
             qs.add(q);
         }
-        repo.saveAll(qs);
+        return ((List<Question>)repo.saveAll(qs)).size();
     }
 
     public long count() {

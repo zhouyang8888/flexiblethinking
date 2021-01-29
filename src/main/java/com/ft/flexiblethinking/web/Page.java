@@ -2,6 +2,7 @@ package com.ft.flexiblethinking.web;
 
 import com.ft.flexiblethinking.common.SingletonCookieInfoService;
 import com.ft.flexiblethinking.model.data.QueryQuestions;
+import com.ft.flexiblethinking.model.data.Question;
 import com.ft.flexiblethinking.model.data.QuestionStruct;
 import com.ft.flexiblethinking.model.submission.QuerySubmissions;
 import com.ft.flexiblethinking.model.submission.Submission;
@@ -24,10 +25,8 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.temporal.TemporalUnit;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Locale;
+import java.util.*;
+import java.util.function.Consumer;
 
 @RestController
 public class Page {
@@ -217,5 +216,33 @@ public class Page {
         JsonObject respData = new JsonObject();
         respData.add("correct", new JsonPrimitive(correct));
         return gson.toJson(respData);
+    }
+
+    // ========================== ======================== //
+    @CrossOrigin(origins = "http://127.0.0.1:8080")
+    @PostMapping("/api/addproblem")
+    public String addProblem(@RequestBody(required = true) String body) {
+        JsonArray ja = gson.fromJson(body, JsonArray.class);
+        List<QuestionStruct> list = new LinkedList<>();
+        for (int i = 0; i < ja.size(); i++) {
+            JsonObject jo = ja.get(i).getAsJsonObject();
+            String title = jo.get("title").getAsString();
+            String desc  = jo.get("desc").getAsString();
+            String in    = jo.get("in").getAsString();
+            String out   = jo.get("out").getAsString();
+            QuestionStruct qs = new QuestionStruct();
+            qs.setTitle(title);
+            qs.setDesc(desc);
+            qs.setIn(in);
+            qs.setOut(out);
+            list.add(qs);
+        }
+        if (!list.isEmpty()) {
+            int stored = qq.saveAll(list);
+            if (stored == list.size()) {
+                return "{message: \"All inserted.\"}";
+            }
+        }
+        return "{message: \"Failure happened.\"}";
     }
 }
