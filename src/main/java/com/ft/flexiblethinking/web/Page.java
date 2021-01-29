@@ -240,9 +240,9 @@ public class Page {
         if (!list.isEmpty()) {
             int stored = qq.saveAll(list);
             if (stored == list.size()) {
-                return "{message: \"All inserted.\"}";
+                return gson.toJson(gson.fromJson("{message: \"All inserted.\"}", JsonObject.class));
             }
         }
-        return "{message: \"Failure happened.\"}";
+        return gson.toJson(gson.fromJson("{message: \"Failure happened.\"}", JsonObject.class));
     }
 }
