@@ -17,40 +17,31 @@ public class QueryQuestions implements IQueryQuestions {
         return (List<Question>) repo.findAll();
     }
 
-    public QuestionStruct findByID(Long id) {
+    public Question findByID(long id) {
         Optional<Question> oq = repo.findById(id);
         if (oq.isPresent())
-            return gson.fromJson(oq.get().getContent(), QuestionStruct.class);
+            return oq.get();
         else
             return null;
     }
 
-    public List<QuestionStruct> findByID(Long start, Long end) {
+    public List<Question> findByID(Long start, Long end) {
         List<Long> ids = new ArrayList<>();
         for (Long s = start; s < end; s++) ids.add(s);
         Iterable<Question> lq = repo.findAllById(ids);
-        List<QuestionStruct> ret = new ArrayList<>();
+        List<Question> ret = new ArrayList<>();
         Iterator<Question> lqItr = lq.iterator();
         while (lqItr.hasNext()) {
-            Question qu = lqItr.next();
-            ret.add(gson.fromJson(qu.getContent(), QuestionStruct.class));
+            ret.add(lqItr.next());
         }
         return ret;
     }
 
-    public void save(QuestionStruct quest) {
-        Question q = new Question();
-        q.setContent(gson.toJson(quest));
-        repo.save(q);
+    public void save(Question question) {
+        repo.save(question);
     }
 
-    public int saveAll(List<QuestionStruct> quests) {
-        List<Question> qs = new LinkedList<>();
-        for (QuestionStruct qstruct : quests) {
-            Question q = new Question();
-            q.setContent(gson.toJson(qstruct));
-            qs.add(q);
-        }
+    public int saveAll(List<Question> qs) {
         return ((List<Question>)repo.saveAll(qs)).size();
     }
 
@@ -58,4 +49,12 @@ public class QueryQuestions implements IQueryQuestions {
         return repo.count();
     }
 
+
+    public void deleteByID(long id) {
+        repo.deleteById(id);
+    }
+
+    public void updateByID(long pid, String content, boolean isValid) {
+        repo.updateByID(pid, content, isValid);
+    }
 }

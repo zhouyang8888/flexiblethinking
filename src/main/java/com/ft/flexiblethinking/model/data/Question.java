@@ -22,5 +22,15 @@ public class Question {
         this.content = content;
     }
 
+    public boolean getIsvalid() {
+        return isvalid;
+    }
+
+    public void setIsvalid(boolean valid) {
+        isvalid = valid;
+    }
+
     private String content;
+
+    private boolean isvalid = true;
 }

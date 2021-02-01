@@ -170,17 +170,20 @@ public class Page {
     @GetMapping("/api/list")
     public String getListByPageNo(@RequestParam long pn, @RequestParam long mpc) {
         long totalProblemCount = qq.count();
-        List<QuestionStruct> problems = null;
+        List<QuestionStruct> problems = new ArrayList<>();
         long start = (pn - 1) * mpc + 1;
         long end = start + mpc;
         if (start <= totalProblemCount) {
             if (end > totalProblemCount + 1) {
                 end = totalProblemCount + 1;
             }
-            problems = qq.findByID(start, end);
-        } else {
-            problems = new ArrayList<>();
+            List<Question> pl = qq.findByID(start, end);
+            for (Iterator<Question> itr =  pl.iterator(); itr.hasNext(); ) {
+                Question q = itr.next();
+                problems.add(new QuestionStruct(q));
+            }
         }
+
         JsonObject jsonObject = new JsonObject();
         jsonObject.add("pageCount", new JsonPrimitive((totalProblemCount + mpc - 1) / mpc));
         jsonObject.add("problems", gson.toJsonTree(problems));
@@ -192,8 +195,8 @@ public class Page {
     public String getProblemByPID(@RequestBody String body) {
         JsonObject job = gson.fromJson(body, JsonObject.class);
         long pid = job.get("id").getAsLong();
-        QuestionStruct q = qq.findByID(pid);
-        return gson.toJson(q);
+        Question q = qq.findByID(pid);
+        return gson.toJson(new QuestionStruct(q));
     }
 
     @CrossOrigin(origins = "http://127.0.0.1:8080")
@@ -204,8 +207,8 @@ public class Page {
         long pid = job.get("id").getAsLong();
         String answer = job.get("ans").getAsString().trim().toLowerCase();
 
-        QuestionStruct q = qq.findByID(pid);
-        String expected = q.getOut();
+        Question q = qq.findByID(pid);
+        String expected = gson.fromJson(q.getContent(), JsonObject.class).get("out").getAsString();
         boolean correct = answer.equals(expected.trim().toLowerCase());
         Submission submission = new Submission();
         submission.setUid(uid);
@@ -223,19 +226,12 @@ public class Page {
     @PostMapping("/api/addproblem")
     public String addProblem(@RequestBody(required = true) String body) {
         JsonArray ja = gson.fromJson(body, JsonArray.class);
-        List<QuestionStruct> list = new LinkedList<>();
+        List<Question> list = new LinkedList<>();
         for (int i = 0; i < ja.size(); i++) {
-            JsonObject jo = ja.get(i).getAsJsonObject();
-            String title = jo.get("title").getAsString();
-            String desc  = jo.get("desc").getAsString();
-            String in    = jo.get("in").getAsString();
-            String out   = jo.get("out").getAsString();
-            QuestionStruct qs = new QuestionStruct();
-            qs.setTitle(title);
-            qs.setDesc(desc);
-            qs.setIn(in);
-            qs.setOut(out);
-            list.add(qs);
+            Question q = new Question();
+            q.setContent(gson.toJson(ja.get(i)));
+            q.setIsvalid(true);
+            list.add(q);
         }
         if (!list.isEmpty()) {
             int stored = qq.saveAll(list);
@@ -244,5 +240,48 @@ public class Page {
             }
         }
         return gson.toJson(gson.fromJson("{message: \"Failure happened.\"}", JsonObject.class));
+    }
+
+    @CrossOrigin(origins = "http://127.0.0.1:8080")
+    @PostMapping("/api/searchByID")
+    public String searchByID(@RequestBody(required = true) String body) {
+        JsonObject jso = gson.fromJson(body, JsonObject.class);
+        long pid = jso.get("pid").getAsLong();
+        Question q = qq.findByID(pid);
+        return gson.toJson(q != null ? new QuestionStruct(q) : null);
+    }
+
+    @CrossOrigin(origins = "http://127.0.0.1:8080")
+    @PostMapping("/api/deleteByID")
+    public String deleteByID(@RequestBody(required = true) String body) {
+        JsonObject jso = gson.fromJson(body, JsonObject.class);
+        long pid = jso.get("pid").getAsLong();
+        qq.updateByID(pid, gson.toJson(qq.findByID(pid).getContent()), false);
+        Question q = qq.findByID(pid);
+        return gson.toJson(q != null ? new QuestionStruct(q) : null);
+    }
+
+    @CrossOrigin(origins = "http://127.0.0.1:8080")
+    @PostMapping("/api/updateByID")
+    public String updateByID(@RequestBody(required = true) String body) {
+        JsonObject jso = gson.fromJson(body, JsonObject.class);
+        long pid = jso.get("pid").getAsLong();
+        String title = jso.get("t").getAsString();
+        String desc = jso.get("d").getAsString();
+        String input = jso.get("i").getAsString();
+        String output = jso.get("o").getAsString();
+
+        QuestionStruct qs = new QuestionStruct();
+        qs.setTitle(title);
+        qs.setDesc(desc);
+        qs.setIn(input);
+        qs.setOut(output);
+        qs.setValid(true);
+
+        Question q = qs.toQuestion();
+
+        qq.updateByID(pid, q.getContent(), true);
+        q = qq.findByID(pid);
+        return gson.toJson(q == null ? null : new QuestionStruct(q));
     }
 }
