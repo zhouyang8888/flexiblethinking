@@ -57,4 +57,8 @@ public class QueryQuestions implements IQueryQuestions {
     public void updateByID(long pid, String content, boolean isValid) {
         repo.updateByID(pid, content, isValid);
     }
+
+    public void markDeleteByID(long id) {
+        repo.markDeleteByID(id);
+    }
 }

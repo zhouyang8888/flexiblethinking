@@ -15,4 +15,10 @@ public interface RepoQuestions extends CrudRepository<Question, Long> {
     @Modifying
     @Query("update Question q set q.content = :content, q.isvalid = :isvalid where q.id = :id")
     public void updateByID(@Param(value = "id") long id, @Param(value = "content") String content, @Param(value = "isvalid") boolean isValid);
+
+
+    @Transactional
+    @Modifying
+    @Query("update Question q set q.isvalid = false where q.id = :id")
+    public void markDeleteByID(@Param(value = "id") long id);
 }

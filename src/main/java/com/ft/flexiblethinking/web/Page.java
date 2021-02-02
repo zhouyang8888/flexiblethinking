@@ -256,7 +256,7 @@ public class Page {
     public String deleteByID(@RequestBody(required = true) String body) {
         JsonObject jso = gson.fromJson(body, JsonObject.class);
         long pid = jso.get("pid").getAsLong();
-        qq.updateByID(pid, gson.toJson(qq.findByID(pid).getContent()), false);
+        qq.markDeleteByID(pid);
         Question q = qq.findByID(pid);
         return gson.toJson(q != null ? new QuestionStruct(q) : null);
     }

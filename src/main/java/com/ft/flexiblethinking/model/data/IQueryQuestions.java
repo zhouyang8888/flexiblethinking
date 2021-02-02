@@ -10,4 +10,5 @@ public interface IQueryQuestions {
     public int saveAll(List<Question> quests);
     public long count();
     public void deleteByID(long id);
+    public void markDeleteByID(long id);
 }
