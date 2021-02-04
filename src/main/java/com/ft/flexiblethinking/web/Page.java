@@ -4,6 +4,9 @@ import com.ft.flexiblethinking.common.SingletonCookieInfoService;
 import com.ft.flexiblethinking.model.data.QueryQuestions;
 import com.ft.flexiblethinking.model.data.Question;
 import com.ft.flexiblethinking.model.data.QuestionStruct;
+import com.ft.flexiblethinking.model.img.Image;
+import com.ft.flexiblethinking.model.img.ImageStorage;
+import com.ft.flexiblethinking.model.img.QueryImage;
 import com.ft.flexiblethinking.model.submission.QuerySubmissions;
 import com.ft.flexiblethinking.model.submission.Submission;
 import com.ft.flexiblethinking.model.user.QueryUsers;
@@ -11,13 +14,19 @@ import com.ft.flexiblethinking.web.response.UserResponseBody;
 import com.google.gson.*;
 import org.apache.tomcat.jni.Time;
 import org.apache.tomcat.util.security.MD5Encoder;
+import org.springframework.data.repository.query.Param;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import sun.security.provider.MD5;
 
 import javax.annotation.Resource;
 import javax.persistence.criteria.CriteriaBuilder;
+import javax.servlet.ServletInputStream;
 import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -42,6 +51,9 @@ public class Page {
 
     @Resource
     private QuerySubmissions qs;
+
+    @Resource
+    private QueryImage qi;
 
     Gson gson = new Gson();
 
@@ -283,5 +295,90 @@ public class Page {
         qq.updateByID(pid, q.getContent(), true);
         q = qq.findByID(pid);
         return gson.toJson(q == null ? null : new QuestionStruct(q));
+    }
+
+    @CrossOrigin(origins = "http://127.0.0.1:8080")
+    @GetMapping("/api/getImg/{img}")
+    public String getImg(@PathVariable(value = "img") Long imgID, HttpServletResponse response) throws IOException {
+        Image img = qi.findByID(imgID);
+        if (img != null) {
+            String path = img.getRelpath();
+            byte[] binaryImg = ImageStorage.getInstance().readImage(path);
+            if (binaryImg != null) {
+                response.setContentType(img.getType());
+                OutputStream os = response.getOutputStream();
+                os.write(binaryImg);
+                os.flush();
+                os.close();
+            }
+        }
+        return "I don't know WHAT TO return.";
+    }
+
+    @CrossOrigin(origins = "http://127.0.0.1:8080")
+    @PostMapping("/api/saveImg")
+    public String saveImg(@Param(value = "pid") long pid, @Param(value = "file") MultipartFile file) throws IOException, NoSuchAlgorithmException {
+        String type = file.getContentType();
+        byte[] bytes = file.getBytes();
+        MessageDigest md5 = MessageDigest.getInstance("MD5");
+        byte[] md5bytes = md5.digest(bytes);
+        String md5sum = MD5Encoder.encode(md5bytes);
+        String path = "" + pid;
+
+        int code = 0;
+        String msg = null;
+        Image img = null;
+        List<Image> images = qi.findByMD5(md5sum);
+        if (!images.isEmpty()) {
+            img = images.get(0);
+            code = 0;
+            msg = "重复文件";
+        } else {
+            ImageStorage.SaveStatus status = ImageStorage.getInstance().saveImage(bytes, path);
+            int sn = 1;
+            while (status == ImageStorage.SaveStatus.EXISTENCE) {
+                path = pid + "_" + sn++;
+                status = ImageStorage.getInstance().saveImage(bytes, path);
+            }
+            code = -status.ordinal();
+            if (status == ImageStorage.SaveStatus.SUCCESS) {
+                img = new Image();
+                img.setMd5(md5sum);
+                img.setType(type);
+                img.setRelpath(path);
+                img = qi.saveOne(img);
+                if (img.getId() <= 0) {
+                    ImageStorage.getInstance().deleteImage(path);
+                    msg = "保存失败";
+                    code = -ImageStorage.SaveStatus.EXCEPTION.ordinal();
+                } else {
+                    msg = "保存成功";
+                }
+            } else if (status == ImageStorage.SaveStatus.EXCEPTION) {
+                msg = "保存失败";
+            }
+        }
+
+        if (code == 0) {
+            Question q = qq.findByID(pid);
+            QuestionStruct qs = new QuestionStruct(q);
+            String[] imgs = qs.getImgs();
+            if (imgs == null) {
+                imgs = new String[1];
+                imgs[0] = "" + img.getId();
+            } else {
+                String[] newimgs = new String[imgs.length + 1];
+                for (int i = 0; i < imgs.length; i++) {
+                    newimgs[i] = imgs[i];
+                }
+                newimgs[imgs.length] = "" + img.getId();
+                imgs = newimgs;
+            }
+            qs.setImgs(imgs);
+            q = qs.toQuestion();
+            qq.updateByID(pid, q.getContent(), q.getIsvalid());
+        }
+
+        return gson.toJson(gson.fromJson("{ status: " + code + ", msg: \"" + msg + "\" }", JsonObject.class));
     }
 }
