@@ -323,9 +323,17 @@ public class Page {
         // 最强方式就是直接从request里面取内容
         MultipartHttpServletRequest mpHreq = (MultipartHttpServletRequest) request;
         long pid = Long.parseLong(mpHreq.getParameter("pid"));
+        String[] iid = null;
         String iidString = mpHreq.getParameter("iid");
-        String[] iid = iidString != null ? mpHreq.getParameter("iid").split(",") : new String[0];
+        if (iidString == null || iidString.trim().isEmpty()) {
+            iid = new String[0];
+        } else {
+            iid = iidString.split(",");
+            for (int i = 0; i < iid.length; i++)
+                iid[i] = iid[i].trim();
+        }
         List<MultipartFile> files = mpHreq.getFiles("file");
+        if (files == null) files = new ArrayList<>();
 
         return saveImg(pid, iid, files);
     }
