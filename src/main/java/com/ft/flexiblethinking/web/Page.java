@@ -17,6 +17,7 @@ import org.apache.tomcat.util.security.MD5Encoder;
 import org.springframework.data.repository.query.Param;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.multipart.MultipartHttpServletRequest;
 import sun.security.provider.MD5;
 
 import javax.annotation.Resource;
@@ -317,67 +318,79 @@ public class Page {
 
     @CrossOrigin(origins = "http://127.0.0.1:8080")
     @PostMapping("/api/saveImg")
-    public String saveImg(@Param(value = "pid") long pid, @Param(value = "file") MultipartFile file) throws IOException, NoSuchAlgorithmException {
-        String type = file.getContentType();
-        byte[] bytes = file.getBytes();
-        MessageDigest md5 = MessageDigest.getInstance("MD5");
-        byte[] md5bytes = md5.digest(bytes);
-        String md5sum = MD5Encoder.encode(md5bytes);
-        String path = "" + pid;
+    @ResponseBody
+    public String saveImgFiles(HttpServletRequest request) throws IOException, NoSuchAlgorithmException {
+        // 最强方式就是直接从request里面取内容
+        MultipartHttpServletRequest mpHreq = (MultipartHttpServletRequest) request;
+        long pid = Long.parseLong(mpHreq.getParameter("pid"));
+        String iidString = mpHreq.getParameter("iid");
+        String[] iid = iidString != null ? mpHreq.getParameter("iid").split(",") : new String[0];
+        List<MultipartFile> files = mpHreq.getFiles("file");
 
+        return saveImg(pid, iid, files);
+    }
+
+    private String saveImg(long pid, String[] iid, List<MultipartFile> files) throws IOException, NoSuchAlgorithmException {
         int code = 0;
-        String msg = null;
-        Image img = null;
-        List<Image> images = qi.findByMD5(md5sum);
-        if (!images.isEmpty()) {
-            img = images.get(0);
-            code = 0;
-            msg = "重复文件";
-        } else {
-            ImageStorage.SaveStatus status = ImageStorage.getInstance().saveImage(bytes, path);
-            int sn = 1;
-            while (status == ImageStorage.SaveStatus.EXISTENCE) {
-                path = pid + "_" + sn++;
-                status = ImageStorage.getInstance().saveImage(bytes, path);
-            }
-            code = -status.ordinal();
-            if (status == ImageStorage.SaveStatus.SUCCESS) {
-                img = new Image();
-                img.setMd5(md5sum);
-                img.setType(type);
-                img.setRelpath(path);
-                img = qi.saveOne(img);
-                if (img.getId() <= 0) {
-                    ImageStorage.getInstance().deleteImage(path);
-                    msg = "保存失败";
-                    code = -ImageStorage.SaveStatus.EXCEPTION.ordinal();
-                } else {
-                    msg = "保存成功";
-                }
-            } else if (status == ImageStorage.SaveStatus.EXCEPTION) {
-                msg = "保存失败";
-            }
-        }
+        String msg = "";
+        List<String> niid = new ArrayList<>();
+        for (MultipartFile file : files) {
+            int curCode = 0;
+            String type = file.getContentType();
+            byte[] bytes = file.getBytes();
+            MessageDigest md5 = MessageDigest.getInstance("MD5");
+            byte[] md5bytes = md5.digest(bytes);
+            String md5sum = MD5Encoder.encode(md5bytes);
+            String path = "" + pid;
 
-        if (code == 0) {
-            Question q = qq.findByID(pid);
-            QuestionStruct qs = new QuestionStruct(q);
-            String[] imgs = qs.getImgs();
-            if (imgs == null) {
-                imgs = new String[1];
-                imgs[0] = "" + img.getId();
+            Image img = null;
+            List<Image> images = qi.findByMD5(md5sum);
+            if (!images.isEmpty()) {
+                img = images.get(0);
+                msg += "_重复记录文件";
             } else {
-                String[] newimgs = new String[imgs.length + 1];
-                for (int i = 0; i < imgs.length; i++) {
-                    newimgs[i] = imgs[i];
+                ImageStorage.SaveStatus status = ImageStorage.getInstance().saveImage(bytes, path);
+                int sn = 1;
+                while (status == ImageStorage.SaveStatus.EXISTENCE) {
+                    // 文件路径已经存在
+                    path = pid + "_" + sn++;
+                    status = ImageStorage.getInstance().saveImage(bytes, path);
                 }
-                newimgs[imgs.length] = "" + img.getId();
-                imgs = newimgs;
+                if (status == ImageStorage.SaveStatus.SUCCESS) {
+                    img = new Image();
+                    img.setMd5(md5sum);
+                    img.setType(type);
+                    img.setRelpath(path);
+                    img = qi.saveOne(img);
+                    if (img.getId() <= 0) {
+                        ImageStorage.getInstance().deleteImage(path);
+                        msg += "_保存失败";
+                        curCode = ImageStorage.SaveStatus.EXCEPTION.ordinal();
+                    } else {
+                        msg += "_保存成功";
+                    }
+                } else if (status == ImageStorage.SaveStatus.EXCEPTION) {
+                    msg += "_保存失败";
+                    curCode = status.ordinal();
+                }
             }
-            qs.setImgs(imgs);
-            q = qs.toQuestion();
-            qq.updateByID(pid, q.getContent(), q.getIsvalid());
+
+            if (curCode == 0) {
+                niid.add("" + img.getId());
+            } else {
+                code -= curCode;
+            }
         }
+        Question q = qq.findByID(pid);
+        QuestionStruct qs = new QuestionStruct(q);
+
+        String[] imgs = new String[iid.length + niid.size()];
+        System.arraycopy(iid, 0, imgs, 0, iid.length);
+        System.arraycopy(niid.toArray(new String[niid.size()]), 0, imgs, iid.length, niid.size());
+        qs.setImgs(imgs);
+
+        q = qs.toQuestion();
+        qq.updateByID(pid, q.getContent(), q.getIsvalid());
 
         return gson.toJson(gson.fromJson("{ status: " + code + ", msg: \"" + msg + "\" }", JsonObject.class));
     }
