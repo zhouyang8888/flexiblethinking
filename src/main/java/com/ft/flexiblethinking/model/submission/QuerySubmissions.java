@@ -43,8 +43,18 @@ public class QuerySubmissions {
         Map<String, Long> subRatio = repo.countSubmissionRatio(uid);
         Map<String, Long> probRatio = repo.countQuestionRatio(uid);
         Map<String, Long> ret = new HashMap<>();
-        ret.putAll(subRatio);
-        ret.putAll(probRatio);
+        if (!subRatio.isEmpty()) {
+            ret.putAll(subRatio);
+        } else {
+            ret.put("numSubmits", 0L);
+            ret.put("numSubmitOK", 0L);
+        }
+        if (!probRatio.isEmpty()) {
+            ret.putAll(probRatio);
+        } else {
+            ret.put("numProb", 0L);
+            ret.put("numProbOK", 0L);
+        }
         return ret;
     }
 }
