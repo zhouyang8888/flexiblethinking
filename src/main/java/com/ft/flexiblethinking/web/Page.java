@@ -14,6 +14,7 @@ import com.ft.flexiblethinking.web.response.UserResponseBody;
 import com.google.gson.*;
 import org.apache.tomcat.jni.Time;
 import org.apache.tomcat.util.security.MD5Encoder;
+import org.hibernate.annotations.Parameter;
 import org.springframework.data.repository.query.Param;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -227,6 +228,7 @@ public class Page {
         submission.setUid(uid);
         submission.setQid(pid);
         submission.setAnswer(answer);
+        submission.setOK(correct);
         qs.add(submission);
 
         JsonObject respData = new JsonObject();
@@ -314,6 +316,15 @@ public class Page {
             }
         }
         return "I don't know WHAT TO return.";
+    }
+
+    @CrossOrigin(origins = "http://127.0.0.1:8080")
+    @PostMapping("/api/statistics")
+    @ResponseBody
+    public String getStatistics(@RequestBody(required = true) String body) {
+        long uid = gson.fromJson(body, JsonObject.class).get("uid").getAsLong();
+        Map<String, Long> sids = qs.getStatistics(uid);
+        return gson.toJson(sids);
     }
 
     @CrossOrigin(origins = "http://127.0.0.1:8080")

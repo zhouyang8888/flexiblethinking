@@ -37,7 +37,16 @@ public class Submission {
         this.answer = answer;
     }
 
+    public boolean isOK() {
+        return isOK;
+    }
+
+    public void setOK(boolean OK) {
+        isOK = OK;
+    }
+
     private Long uid;
     private Long qid;
     private String answer;
+    private boolean isOK;
 }

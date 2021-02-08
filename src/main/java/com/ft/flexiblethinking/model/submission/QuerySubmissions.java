@@ -3,7 +3,9 @@ package com.ft.flexiblethinking.model.submission;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -35,5 +37,14 @@ public class QuerySubmissions {
 
     public void deleteByID(long id) {
         repo.deleteById(id);
+    }
+
+    public Map<String, Long> getStatistics(long uid) {
+        Map<String, Long> subRatio = repo.countSubmissionRatio(uid);
+        Map<String, Long> probRatio = repo.countQuestionRatio(uid);
+        Map<String, Long> ret = new HashMap<>();
+        ret.putAll(subRatio);
+        ret.putAll(probRatio);
+        return ret;
     }
 }
