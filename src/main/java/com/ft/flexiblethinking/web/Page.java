@@ -27,9 +27,9 @@ import javax.servlet.ServletInputStream;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.io.OutputStream;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.FileSystems;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
@@ -37,7 +37,11 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.temporal.TemporalUnit;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
+import java.util.function.BinaryOperator;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 @RestController
 public class Page {
@@ -211,6 +215,77 @@ public class Page {
         long pid = job.get("id").getAsLong();
         Question q = qq.findByID(pid);
         return gson.toJson(new QuestionStruct(q));
+    }
+
+    @CrossOrigin(origins = "http://127.0.0.1:8080")
+    @PostMapping("/api/submitsource")
+    public String submitSource(@RequestBody String body) throws IOException, InterruptedException {
+        JsonObject job = gson.fromJson(body, JsonObject.class);
+        long uid = job.get("uid").getAsLong();
+        long pid = job.get("id").getAsLong();
+        String code = job.get("ans").getAsString();
+
+        boolean correct = false;
+
+        Question q = qq.findByID(pid);
+
+        File dir = File.createTempFile(q.getId() + "", "");
+        if (!dir.exists()) dir.mkdir();
+        {
+            QuestionStruct questionStruct = new QuestionStruct(q);
+
+            File source = new File(dir, questionStruct.getTitle() + ".cpp");
+            File in = new File(dir, questionStruct.getTitle() + ".in");
+            File out = new File(dir, questionStruct.getTitle() + ".out");
+
+            BufferedOutputStream inFileOs = new BufferedOutputStream(new FileOutputStream(in));
+            inFileOs.write(questionStruct.getIn().getBytes(StandardCharsets.UTF_8));
+            inFileOs.flush();
+            inFileOs.close();
+
+            BufferedOutputStream sourceFileOs = new BufferedOutputStream(new FileOutputStream(source));
+            sourceFileOs.write(code.getBytes(StandardCharsets.UTF_8));
+            sourceFileOs.flush();
+            sourceFileOs.close();
+
+            Runtime runtime = Runtime.getRuntime();
+            Process compiling = runtime.exec("g++ \"" + source.getName() + "\" -o \"" + questionStruct.getTitle() + ".bin\" > log", null, dir);
+            if (compiling.waitFor(10, TimeUnit.SECONDS)) {
+                Process running = runtime.exec(dir.getAbsoluteFile() + File.separator + questionStruct.getTitle() + ".bin" + " < " + in.getAbsolutePath() + " > " + out.getAbsolutePath(), null, dir);
+                if (running.waitFor(1, TimeUnit.MINUTES)) {
+                    BufferedReader outFileIs = new BufferedReader(new InputStreamReader(new FileInputStream(out)));
+                    Stream<String> lines = outFileIs.lines();
+                    Optional<String> merged = lines.reduce(new BinaryOperator<String>() {
+                        @Override
+                        public String apply(String s, String s2) {
+                            return s + "\n" + s2;
+                        }
+                    });
+                    if (merged.isPresent()) {
+                        String execOut = merged.get();
+                        if (execOut.equals(questionStruct.getOut())) {
+                            correct = true;
+                        }
+                    }
+                } else {
+                    running.destroyForcibly();
+                }
+            } else {
+                compiling.destroyForcibly();
+            }
+        }
+        dir.delete();
+
+        Submission submission = new Submission();
+        submission.setUid(uid);
+        submission.setQid(pid);
+        submission.setAnswer(code);
+        submission.setOK(correct);
+        qs.add(submission);
+
+        JsonObject respData = new JsonObject();
+        respData.add("correct", new JsonPrimitive(correct));
+        return gson.toJson(respData);
     }
 
     @CrossOrigin(origins = "http://127.0.0.1:8080")
