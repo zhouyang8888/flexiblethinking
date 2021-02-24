@@ -238,13 +238,11 @@ public class Page {
             File in = new File(dir, questionStruct.getTitle() + ".in");
             File out = new File(dir, questionStruct.getTitle() + ".out");
 
-            in.createNewFile();
             BufferedOutputStream inFileOs = new BufferedOutputStream(new FileOutputStream(in));
             inFileOs.write(questionStruct.getIn().getBytes(StandardCharsets.UTF_8));
             inFileOs.flush();
             inFileOs.close();
 
-            source.createNewFile();
             BufferedOutputStream sourceFileOs = new BufferedOutputStream(new FileOutputStream(source));
             sourceFileOs.write(code.getBytes(StandardCharsets.UTF_8));
             sourceFileOs.flush();
