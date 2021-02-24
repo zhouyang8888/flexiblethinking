@@ -229,8 +229,8 @@ public class Page {
 
         Question q = qq.findByID(pid);
 
-        File dir = File.createTempFile(q.getId() + "", "");
-        if (!dir.exists()) dir.mkdir();
+        File dir = File.createTempFile(String.format("%010d", uid), "");
+        if (dir.exists() || dir.mkdirs())
         {
             QuestionStruct questionStruct = new QuestionStruct(q);
 
@@ -238,11 +238,13 @@ public class Page {
             File in = new File(dir, questionStruct.getTitle() + ".in");
             File out = new File(dir, questionStruct.getTitle() + ".out");
 
+            in.createNewFile();
             BufferedOutputStream inFileOs = new BufferedOutputStream(new FileOutputStream(in));
             inFileOs.write(questionStruct.getIn().getBytes(StandardCharsets.UTF_8));
             inFileOs.flush();
             inFileOs.close();
 
+            source.createNewFile();
             BufferedOutputStream sourceFileOs = new BufferedOutputStream(new FileOutputStream(source));
             sourceFileOs.write(code.getBytes(StandardCharsets.UTF_8));
             sourceFileOs.flush();
@@ -273,8 +275,9 @@ public class Page {
             } else {
                 compiling.destroyForcibly();
             }
+
+            dir.delete();
         }
-        dir.delete();
 
         Submission submission = new Submission();
         submission.setUid(uid);
