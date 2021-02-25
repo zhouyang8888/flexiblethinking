@@ -232,49 +232,51 @@ public class Page {
         File dir = File.createTempFile(String.format("%010d", uid), "");
         if (dir.exists() || dir.mkdirs())
         {
-            QuestionStruct questionStruct = new QuestionStruct(q);
+            try {
+                QuestionStruct questionStruct = new QuestionStruct(q);
 
-            File source = new File(dir, questionStruct.getTitle() + ".cpp");
-            File in = new File(dir, questionStruct.getTitle() + ".in");
-            File out = new File(dir, questionStruct.getTitle() + ".out");
+                File source = new File(dir, questionStruct.getTitle() + ".cpp");
+                File in = new File(dir, questionStruct.getTitle() + ".in");
+                File out = new File(dir, questionStruct.getTitle() + ".out");
 
-            BufferedOutputStream inFileOs = new BufferedOutputStream(new FileOutputStream(in));
-            inFileOs.write(questionStruct.getIn().getBytes(StandardCharsets.UTF_8));
-            inFileOs.flush();
-            inFileOs.close();
+                BufferedOutputStream inFileOs = new BufferedOutputStream(new FileOutputStream(in));
+                inFileOs.write(questionStruct.getIn().getBytes(StandardCharsets.UTF_8));
+                inFileOs.flush();
+                inFileOs.close();
 
-            BufferedOutputStream sourceFileOs = new BufferedOutputStream(new FileOutputStream(source));
-            sourceFileOs.write(code.getBytes(StandardCharsets.UTF_8));
-            sourceFileOs.flush();
-            sourceFileOs.close();
+                BufferedOutputStream sourceFileOs = new BufferedOutputStream(new FileOutputStream(source));
+                sourceFileOs.write(code.getBytes(StandardCharsets.UTF_8));
+                sourceFileOs.flush();
+                sourceFileOs.close();
 
-            Runtime runtime = Runtime.getRuntime();
-            Process compiling = runtime.exec("g++ \"" + source.getName() + "\" -o \"" + questionStruct.getTitle() + ".bin\" > log", null, dir);
-            if (compiling.waitFor(10, TimeUnit.SECONDS)) {
-                Process running = runtime.exec(dir.getAbsoluteFile() + File.separator + questionStruct.getTitle() + ".bin" + " < " + in.getAbsolutePath() + " > " + out.getAbsolutePath(), null, dir);
-                if (running.waitFor(1, TimeUnit.MINUTES)) {
-                    BufferedReader outFileIs = new BufferedReader(new InputStreamReader(new FileInputStream(out)));
-                    Stream<String> lines = outFileIs.lines();
-                    Optional<String> merged = lines.reduce(new BinaryOperator<String>() {
-                        @Override
-                        public String apply(String s, String s2) {
-                            return s + "\n" + s2;
+                Runtime runtime = Runtime.getRuntime();
+                Process compiling = runtime.exec("g++ \"" + source.getName() + "\" -o \"" + questionStruct.getTitle() + ".bin\" > log", null, dir);
+                if (compiling.waitFor(10, TimeUnit.SECONDS)) {
+                    Process running = runtime.exec(dir.getAbsoluteFile() + File.separator + questionStruct.getTitle() + ".bin" + " < " + in.getAbsolutePath() + " > " + out.getAbsolutePath(), null, dir);
+                    if (running.waitFor(1, TimeUnit.MINUTES)) {
+                        BufferedReader outFileIs = new BufferedReader(new InputStreamReader(new FileInputStream(out)));
+                        Stream<String> lines = outFileIs.lines();
+                        Optional<String> merged = lines.reduce(new BinaryOperator<String>() {
+                            @Override
+                            public String apply(String s, String s2) {
+                                return s + "\n" + s2;
+                            }
+                        });
+                        if (merged.isPresent()) {
+                            String execOut = merged.get();
+                            if (execOut.equals(questionStruct.getOut())) {
+                                correct = true;
+                            }
                         }
-                    });
-                    if (merged.isPresent()) {
-                        String execOut = merged.get();
-                        if (execOut.equals(questionStruct.getOut())) {
-                            correct = true;
-                        }
+                    } else {
+                        running.destroyForcibly();
                     }
                 } else {
-                    running.destroyForcibly();
+                    compiling.destroyForcibly();
                 }
-            } else {
-                compiling.destroyForcibly();
+            } finally {
+                dir.delete();
             }
-
-            dir.delete();
         }
 
         Submission submission = new Submission();
