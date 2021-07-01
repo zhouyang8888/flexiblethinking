@@ -1,5 +1,6 @@
 package com.ft.flexiblethinking.model.img;
 
+import com.ft.flexiblethinking.config.Config;
 import org.apache.catalina.startup.Tomcat;
 
 import java.io.*;
@@ -67,59 +68,32 @@ public class ImageStorage {
         }
     }
 
-    static ImageStorage instance = null;
-    static String root = null;
+    static volatile ImageStorage instance = null;
+    String root = null;
     public static ImageStorage getInstance() {
         if (instance == null) {
             synchronized (ImageStorage.class) {
                 if (instance == null) {
-                    instance = new ImageStorage();
-
-                    BufferedReader fr = null;
-                    try {
-                        String path = ImageStorage.class.getClassLoader().getResource("app.config").getPath();
-                        fr = new BufferedReader(new InputStreamReader(new FileInputStream(path)));
-                    } catch (FileNotFoundException fnfe) {
-                        fnfe.printStackTrace();
-                        fr = null;
-                    }
-                    if (fr != null) {
-                        try {
-                            String line = fr.readLine();
-                            while (line != null) {
-                                String[] pair = line.trim().split("\\s*=\\s*", 2);
-                                if (pair.length == 2) {
-                                    if (pair[0].equals("img.root")) {
-                                        root = pair[1].trim();
-                                        if (root.isEmpty()) {
-                                            root = "." + File.separator;
-                                        } else if (!root.endsWith(File.separator)) {
-                                            root += File.separator;
-                                        } else {
-                                            // Nothing to do.
-                                        }
-                                        break;
-                                    }
-                                }
-                            }
-                        } catch (IOException ios) {
-                            ios.printStackTrace();
-                            root = "." + File.separator;
-                        }
-                        try {
-                            fr.close();
-                        } catch (IOException ios) {
-                            ios.printStackTrace();
-                        }
-                    } else {
+                    String root = Config.get("img.root");
+                    if (root == null || root.isEmpty()) {
                         root = "." + File.separator;
+                    } else if (!root.endsWith(File.separator)) {
+                        root += File.separator;
+                    } else {
+                        // Nothing TODO.
                     }
+
+                    ImageStorage instance = new ImageStorage();
+                    instance.root = root;
+
+                    File rootFile = new File(instance.root);
+                    if (!rootFile.exists()) {
+                        rootFile.mkdirs();
+                    }
+
+                    ImageStorage.instance = instance;
                 }
             }
-        }
-        File rootFile = new File(root);
-        if (!rootFile.exists()) {
-            rootFile.mkdirs();
         }
         return instance;
     }
